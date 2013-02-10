@@ -1,4 +1,4 @@
-require "socket"
+require "socket.core"
 require "cls"
 
 local address, workport = "127.0.0.1", 12345
@@ -9,7 +9,6 @@ local physics, p, buf = {}, {}, {} -- empty world and players (p)
 local t, id, pid, x, y, fX, fY, angle, spin = 1, 0
 local sign, int, precision
 local data, ip, port, code
-local connected = {}
 
 function love.load()
 	udp = socket.udp()
@@ -22,12 +21,14 @@ end
 function love.update(dt)
 	t = t + dt
 	if t > updaterate then
-		data, ip, port = udp:receivefrom()
-		if data then DD() end
+		while true do
+			data, ip, port = udp:receivefrom()
+			if data then DD() else break end
+		end
+			
 		for i=1, #p do if p[i].connected then 
 				if p[i].bore > 100 then p[i]:kill() end
-				p[i].bore = p[i].bore + 1 
-				print(p[i].bore)
+				p[i].bore = p[i].bore + 1
 			end 
 		end
 	end
@@ -55,6 +56,9 @@ function DD() --data director
 		buf.density = stof(buf.density)
 		p[id] = Player(id, buf.name, buf.R, buf.G, buf.B, buf.face, buf.speed, buf.scale, buf.density, ip, port)
 		p[id]:update(0, 0, 0, 0, 0, 0)
+		for i=1, #p do if p[i].connected then
+			udp:sendto(string.format("p %u %s %u %u %u %u %u %g %g", p[i].id, p[i].name, p[i].R, p[i].G, p[i].B, p[i].face, p[i].speed, p[i].scale, p[i].density), ip, port) end
+		end
 	end
 	if (code == "U") then 
 		pid, x, y, fX, fY, angle, spin = data:match(" (%S*) (%S*) (%S*) (%S*) (%S*) (%S*) (%S*)")
@@ -63,7 +67,10 @@ function DD() --data director
 end
 
 function broadcast()
-
+	for i=1, #p do if p[i].connected then
+			udp:sendto(string.format("u %u %u %u %d %d %f %f", p[i].id, p[i].body:getX(), p[i].body:getY(), p[i].fX, p[i].fY, p[i].body:getAngle()%(math.pi*2), p[i].body:getAngularVelocity()), p[i].ip, p[i].port)
+		end
+	end
 end
 
 function love.draw()
