@@ -28,17 +28,18 @@ end
 
 update = {}
 update[10] = function(dt)
-						-- Гейская строчка
-						p[1].body:applyForce(10000*(keys.d-keys.a)/(1+0.4142*(keys.w+keys.s)), 10000*(keys.s-keys.w)/(1+0.4142*(keys.d+keys.a)))
-						physics:update(dt)
-						
-						t = t + dt
-						if t > updaterate then
-							client.update()
-							server.update()
-							t = 0
-						end
-					end
+	-- Гейская строчка
+	p[1].body:applyForce(10000*(keys.d-keys.a)/(1+0.4142*(keys.w+keys.s)), 10000*(keys.s-keys.w)/(1+0.4142*(keys.d+keys.a)))
+	physics:update(dt)
+	
+	t = t + dt
+	if t > updaterate then
+		data = udp:receive()
+			if data then DD() end
+		server.update()
+		t = 0
+	end
+end
 					
 function love.update(dt)
 	update[state](dt)
@@ -48,15 +49,15 @@ local draw = {}
 draw[0] = function() end -- menu
 draw[1] = function() end -- character creation
 draw[10] = function() 
-						love.graphics.scale(resScale, resScale)
-						client.loadmap(love.graphics.getWidth( )/resScale, love.graphics.getHeight( )/resScale)
-						love.graphics.setColor(p[1].R, p[1].G, p[1].B, 255)
-						love.graphics.polygon("fill", p[1].body:getWorldPoints(p[1].shape:getPoints()))
-						love.graphics.setColor(255,0,0,255)
-						love.graphics.setLine(2, "smooth")
-						love.graphics.line(border.body:getWorldPoints(border.shape:getPoints()))
-						love.graphics.circle("fill", 400, 400, 2, 16)
-					end
+	love.graphics.scale(resScale, resScale)
+	client.loadmap(love.graphics.getWidth( )/resScale, love.graphics.getHeight( )/resScale)
+	love.graphics.setColor(p[1].R, p[1].G, p[1].B, 255)
+	love.graphics.polygon("fill", p[1].body:getWorldPoints(p[1].shape:getPoints()))
+	love.graphics.setColor(255,0,0,255)
+	love.graphics.setLine(2, "smooth")
+	love.graphics.line(border.body:getWorldPoints(border.shape:getPoints()))
+	love.graphics.circle("fill", 400, 400, 2, 16)
+end
 					
 function love.draw()	
 	draw[state]()
@@ -128,9 +129,8 @@ function client.newPlayer()
 	p[1]:update(400, 400, 0, 0, 0, 0)
 end
 
-function client.update()
-	data = udp:receive()
-	--if data then DD() end
+function DD()
+
 end
 
 function server.enter()
