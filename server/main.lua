@@ -3,7 +3,7 @@ require "cls"
 
 local address, workport = "127.0.0.1", 12345
 local scale = 0.5
-local updaterate = 0.025 -- не меньше 0.018
+local updaterate = 0.018 -- не меньше 0.018
 
 local physics, p, buf = {}, {}, {} -- empty world and players (p)
 local t, id, pid, x, y, fX, fY, angle, spin = 1, 0
@@ -42,7 +42,7 @@ function love.update(dt)
 	physics:update(dt)
 	
 	if t > updaterate then
-		broadcast()
+		broadcast_updates()
 		t = 0
 	end
 end					
@@ -51,27 +51,37 @@ function DD() --data director
 	code = data:sub(1,1)
 	if (code == "C") then 
 		id = id + 1
+		udp:sendto(string.format("i%u", id), ip, port)
 		buf.name, buf.R, buf.G, buf.B, buf.face, buf.speed, buf.scale, buf.density = data:match(" (%S*) (%S*) (%S*) (%S*) (%S*) (%S*) (%S*) (%S*)")
 		buf.scale = stof(buf.scale)
 		buf.density = stof(buf.density)
 		p[id] = Player(id, buf.name, buf.R, buf.G, buf.B, buf.face, buf.speed, buf.scale, buf.density, ip, port)
 		p[id]:update(0, 0, 0, 0, 0, 0)
-		for i=1, #p do if p[i].connected then
-			udp:sendto(string.format("p %u %s %u %u %u %u %u %g %g", p[i].id, p[i].name, p[i].R, p[i].G, p[i].B, p[i].face, p[i].speed, p[i].scale, p[i].density), ip, port) end
-		end
+		broadcast_players()
 	end
 	if (code == "U") then 
 		pid, x, y, fX, fY, angle, spin = data:match(" (%S*) (%S*) (%S*) (%S*) (%S*) (%S*) (%S*)")
 		if p[pid+0] then p[pid+0]:update(x, y, fX, fY, stof(angle), stof(spin)) end
+		print(pid.." upd")
 	end
 end
 
-function broadcast()
+function broadcast_updates()
 	for i=1, #p do if p[i].connected then
-			udp:sendto(string.format("u %u %u %u %d %d %f %f", p[i].id, p[i].body:getX(), p[i].body:getY(), p[i].fX, p[i].fY, p[i].body:getAngle()%(math.pi*2), p[i].body:getAngularVelocity()), p[i].ip, p[i].port)
-		end
-	end
+		for j=1, #p do if p[j].connected then
+			if i ~= j then udp:sendto(string.format("u %u %u %u %d %d %f %f", p[j].id, p[j].body:getX(), p[j].body:getY(), p[j].fX, p[j].fY, p[j].body:getAngle()%(math.pi*2), p[j].body:getAngularVelocity()), p[i].ip, p[i].port) end
+		end end
+	end	end
 end
+
+function broadcast_players()
+	for i=1, #p do if p[i].connected then
+		for j=1, #p do if p[j].connected then
+			udp:sendto(string.format("p %u %s %u %u %u %u %u %g %g", p[j].id, p[j].name, p[j].R, p[j].G, p[j].B, p[j].face, p[j].speed, p[j].scale, p[j].density), p[i].ip, p[i].port)
+		end end
+	end	end
+end
+
 
 function love.draw()
 	love.graphics.scale(scale, scale)
