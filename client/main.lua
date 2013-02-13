@@ -41,6 +41,10 @@ update[10] = function(dt)
 		server.update()
 		t = 0
 	end
+	
+	for key,value in pairs(p) do if p[key].connected then
+		if key ~=id then p[key].body:applyForce(10000*(p[key].fX)/(1+0.4142*(p[key].fY*p[key].fY)), 10000*(p[key].fY)/(1+0.4142*(p[key].fX*p[key].fX))) end
+	end end
 end
 					
 function love.update(dt)
